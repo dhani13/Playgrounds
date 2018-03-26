@@ -260,7 +260,7 @@ class YourViewController: UIViewController
             scene.addChild(sprite)
         }
         
-        scene.addChild(line)
+//        scene.addChild(line)
         
         
         spriteView.presentScene(scene)
