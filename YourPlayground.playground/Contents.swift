@@ -5,6 +5,89 @@ import UIKit
 let Width = 300
 let Height = 300
 
+func sigmoidApprox(n: Int) -> [CGFloat]
+{
+    var values = [CGFloat]()
+    for i in 1..<n
+    {
+        let value = 1/(1 + exp(-12.0*CGFloat(i)/CGFloat(n) + 6))
+        values.append(value)
+    }
+    values.append(1.0)
+    return values
+}
+
+func parabolaApprox(n: Int) -> [CGFloat]
+{
+    var values = [CGFloat]()
+    for i in 1...n
+    {
+        let x = CGFloat(i)/CGFloat(n)
+        let value = -x*x + 2.0*x
+        values.append(value)
+    }
+//    print(values)
+    return values
+}
+
+func zoomIn(from origin: CGPoint, to point: CGPoint, duration: TimeInterval, intervals: Int, approximationFunction: (Int)->[CGFloat]) -> SKAction
+{
+    let values = approximationFunction(intervals)
+    let deltaX = point.x - origin.x
+    let deltaY = point.y - origin.y
+    var moves = [SKAction]()
+    var zooms = [SKAction]()
+    for i in 0...(intervals-1)
+    {
+        let point = CGPoint(x: origin.x + deltaX*values[i], y : origin.y + deltaY*values[i])
+        let move = SKAction.move(to: point, duration: duration*1.0/Double(intervals))
+        let zoom = SKAction.scale(to: 1.0 - values[i]*0.67, duration: duration*1.0/Double(intervals))
+        
+        moves.append(move)
+        zooms.append(zoom)
+    }
+    
+    let zoomSeq = SKAction.sequence(zooms)
+    let moveSeq = SKAction.sequence(moves)
+    
+    let zoom = SKAction.group([moveSeq, zoomSeq])
+    return zoom
+}
+
+func zoomIn(from origin: CGPoint, to point: CGPoint, duration: TimeInterval, intervals: Int) -> SKAction
+{
+    return zoomIn(from: origin, to: point, duration: duration, intervals: intervals, approximationFunction: parabolaApprox)
+}
+
+func zoomOut(from origin: CGPoint, to point: CGPoint, duration: TimeInterval, intervals: Int, approximationFunction: (Int)->[CGFloat]) -> SKAction
+{
+    let values = approximationFunction(intervals)
+    let deltaX = point.x - origin.x
+    let deltaY = point.y - origin.y
+    var moves = [SKAction]()
+    var zooms = [SKAction]()
+    for i in 0...(intervals-1)
+    {
+        let point = CGPoint(x: origin.x + deltaX*values[i], y : origin.y + deltaY*values[i])
+        let move = SKAction.move(to: point, duration: duration*1.0/Double(intervals))
+        let zoom = SKAction.scale(to: 0.33 + values[i]*0.67, duration: duration*1.0/Double(intervals))
+        
+        moves.append(move)
+        zooms.append(zoom)
+    }
+    
+    let zoomSeq = SKAction.sequence(zooms)
+    let moveSeq = SKAction.sequence(moves)
+    
+    let zoom = SKAction.group([moveSeq, zoomSeq])
+    return zoom
+}
+
+func zoomOut(from origin: CGPoint, to point: CGPoint, duration: TimeInterval, intervals: Int) -> SKAction
+{
+    return zoomOut(from: origin, to: point, duration: duration, intervals: intervals, approximationFunction: parabolaApprox)
+}
+
 class tictactoe
 {
     var array: [Int]
@@ -75,99 +158,10 @@ class tictactoe
     }
 }
 
-//class YourSpriteView: SKView
-//{
-//    let toBeScene = SKScene(size: CGSize(width: 100, height: 100))
-//    let defaultRect = CGRect(x:0 , y:0, width: 100, height: 100)
-//    var action: SKAction
-//
-//    override func presentScene(_ scene: SKScene?)
-//    {
-//        super.presentScene(scene!, transition: SKTransition.crossFade(withDuration: 0.2))
-//    }
-//
-//    init(_ image: String)
-//    {
-//        let fadeOut = SKAction.fadeOut(withDuration:1.2)
-//        let fadeIn = SKAction.fadeIn(withDuration:1.2)
-//        let wait = SKAction.wait(forDuration: 0.3)
-//        let seq = SKAction.sequence([fadeOut,wait,fadeIn])
-//        let pulseForever = SKAction.repeatForever(seq)
-//        action = pulseForever
-//
-//        super.init(frame: defaultRect)
-//
-//        let node = SKSpriteNode(imageNamed: image)
-//        node.name = image
-//        node.setScale(CGFloat(0.5))
-//        node.position = CGPoint(x: 50, y: 50)
-//        self.scene?.addChild(node)
-//    }
-//
-//    required init?(coder aDecoder: NSCoder)
-//    {
-//        action = SKAction()
-//        super.init(coder: aDecoder)
-//    }
-//}
-
-//class visual
-//{
-//    var id: Int = 0
-//
-//    var spriteNode = SKSpriteNode()
-//    var blankTexture = SKTexture()
-//    var xTexture = SKTexture()
-//    var oTexture = SKTexture()
-//
-//    init(blankImage: String, xImage: String, oImage: String, id: Int)
-//    {
-//        blankTexture = SKTexture(imageNamed: blankImage)
-//        spriteNode = SKSpriteNode(texture: blankTexture, size: CGSize(width: Width/3, height: Height/3))
-//        xTexture = SKTexture(imageNamed: xImage)
-//        oTexture = SKTexture(imageNamed: oImage)
-//        self.id = id
-//    }
-//
-//    @objc func doSomething(sender: visual)
-//    {
-//        let move = game.newMove(index: sender.id, player: parity%2 + 1)
-//        if(move.validMove)
-//        {
-//            if(parity%2 == 0)
-//            {
-//                sender.setTitle(" \(sender.id+1)", for: .normal)
-//            }
-//            else
-//            {
-//                sender.setTitle("∆ \(sender.id+1)", for: .normal)
-//            }
-//
-//            if(move.winner != -1)
-//            {
-//                for i in 0...8
-//                {
-//                    if(game.array[i] == move.winner)
-//                    {
-//                        sprites[i].run(pulseForever)
-//                    }
-//                }
-//            }
-//
-//            parity += 1
-//        }
-//        //        print(sender.id, terminator: "\n")
-//    }
-//
-//    required init?(coder aDecoder: NSCoder)
-//    {
-//        super.init(coder: aDecoder)
-//    }
-//}
-
 class YourSpriteNode: SKSpriteNode
 {
     var id = 0
+    var box = 0
     private var yourViewController = YourViewController()
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
@@ -175,12 +169,28 @@ class YourSpriteNode: SKSpriteNode
         if let touch: UITouch = touches.first
         {
             let positionInScene = touch.location(in: self)
-            if self.atPoint(positionInScene) is YourSpriteNode
+            if let sprite = self.atPoint(positionInScene) as? YourSpriteNode
             {
-                let sprite = self.atPoint(positionInScene) as! YourSpriteNode
-                print("Touched \(sprite.id)")
-                yourViewController.doSomething2(sender: self)
-                sprite.isUserInteractionEnabled = false
+                let X = (sprite.box%3)*Width + Width/2
+                let Y = Int(sprite.box/3)*Height + Height/2
+                
+                let O = CGPoint(x: yourViewController.scene.size.width/2, y: yourViewController.scene.size.height/2)
+                let P = CGPoint(x: X, y: Y)
+                if(yourViewController.zoomedIn)
+                {
+//                    print("Touched \(sprite.id)")
+                    yourViewController.moveAttempted(sender: self)
+                    sprite.isUserInteractionEnabled = false
+                    let zoomOutAction = zoomOut(from: P, to: O, duration: 0.7, intervals: 7)
+                    yourViewController.cameraNode.run(zoomOutAction)
+                    yourViewController.zoomedIn = false
+                }
+                else
+                {
+                    let zoomInAction = zoomIn(from: O, to: P, duration: 0.7, intervals: 7)
+                    yourViewController.cameraNode.run(zoomInAction)
+                    yourViewController.zoomedIn = true
+                }
             }
         }
     }
@@ -194,13 +204,15 @@ class YourSpriteNode: SKSpriteNode
 class YourViewController: UIViewController
 {
     var parity = 0
-    var spriteView = SKView(frame: CGRect(x: (Int(0.2*Double(Width))) , y: (Int(0.2*Double(Height))), width: Width, height: Height))
-    let scene = SKScene(size: CGSize(width: Width, height: Height))
+    var spriteView = SKView(frame: CGRect(x: 0 , y: 0, width: Width, height: Height))
+    var zoomedIn = false
+    let scene = SKScene(size: CGSize(width: Width*3, height: Height*3))
     
     var seq = SKAction()
     var pulseForever = SKAction()
     var toX = SKAction()
     var toO = SKAction()
+    var cameraNode = SKCameraNode()
     
     var game = tictactoe()
     var sprites = [SKSpriteNode]()
@@ -212,121 +224,110 @@ class YourViewController: UIViewController
     {
         super.init(nibName: nil, bundle: nil)
         
-        self.preferredContentSize = CGSize(width: 1.4*Double(Width), height: 1.4*Double(Height))
+        self.preferredContentSize = CGSize(width: Width, height: Height)
         
-        self.view = UIView(frame: CGRect(x: 0, y: 0, width: 1.4*Double(Width), height: 1.4*Double(Height)))
+        self.view = UIView(frame: CGRect(x: 0, y: 0, width: Width, height: Height))
         self.view.backgroundColor = .gray
-        //
         self.view.addSubview(spriteView)
+        
         spriteView.showsFPS = true
-//        spriteView.backgroundColor = .white
-        scene.anchorPoint = CGPoint(x: 0.2/1.2, y: 0.2/1.2)
-//        scene.position = CGPoint(x: 0.2/1.4, y: 0.2/1.4)
+
+        scene.anchorPoint = CGPoint(x: 0, y: 0)
         scene.backgroundColor = .white
         
-//        let tttFrame = CGMutablePath()
-//        tttFrame.addLine(to: CGPoint(x: Width/3, y: Height))
-//        tttFrame.addArc(center: CGPoint.zero,
-//                    radius: 15,
-//                    startAngle: 0,
-//                    endAngle: CGFloat.pi * 2,
-//                    clockwise: true)
-        var points = [CGPoint(x: Width/4, y : -Int(0.2*Double(Width))),
-                      CGPoint(x: Width/4, y : -Int(0.2*Double(Width)) + Height)]
-        let line = SKShapeNode(points: &points,
-                               count: points.count)
-        line.lineWidth = 1
-        line.fillColor = .blue
-        line.strokeColor = .blue
-        line.glowWidth = 0.5
-//        scene.addChild(line)
         
-        for i in 0...8
+        for j in 0...8
         {
-//            let new = SKSpriteNode(imageNamed: image)
-//            new.name = image
-//            new.setScale(CGFloat(0.5))
-//            new.position = CGPoint(x: 50 + 100*(i%3), y: 50 + 100*Int(Double(i)/3.0))
-//            scene.addChild(new)
-            
-            let sprite = YourSpriteNode(imageNamed: image)
-            sprite.scale(to: CGSize(width: Width/3, height: Height/3))
-            sprite.position = CGPoint(x: (i%3)*100, y: Int(Double(i)/3.0)*100)
-            sprite.isUserInteractionEnabled = true
-            sprite.id = i
-            sprite.setYourViewController(yourViewController: self)
-            sprite.target(forAction: #selector(YourViewController.doSomething2(sender:)), withSender: self)
-            sprites.append(sprite)
-            scene.addChild(sprite)
+            let X = (j%3)*Width
+            let Y = Int(j/3)*Height
+            for i in 0...8
+            {
+                let sprite = YourSpriteNode(imageNamed: image)
+                sprite.scale(to: CGSize(width: Width/3, height: Height/3))
+                let x = (i%3)*Width/3 + Width/6 + X
+                let y = Int(i/3)*Height/3 + Height/6 + Y
+                sprite.position = CGPoint(x: x, y: y)
+                sprite.isUserInteractionEnabled = true
+                sprite.id = i
+                sprite.box = j
+                sprite.setYourViewController(yourViewController: self)
+                sprite.target(forAction: #selector(YourViewController.moveAttempted(sender:)), withSender: self)
+                sprites.append(sprite)
+                scene.addChild(sprite)
+            }
+        
+            var points = [[CGPoint]]()
+            let lo = 0.060
+            let hi = 1 - lo
+            points.append([CGPoint(x: 1*Width/3 + X, y : Int(lo * Double(Height)) + Y),
+                           CGPoint(x: 1*Width/3 + X, y : Int(hi * Double(Height)) + Y)])
+            points.append([CGPoint(x: 2*Width/3 + X, y : Int(lo * Double(Height)) + Y),
+                           CGPoint(x: 2*Width/3 + X, y : Int(hi * Double(Height)) + Y)])
+            points.append([CGPoint(x: Int(lo * Double(Width)) + X, y : 1*Height/3 + Y),
+                           CGPoint(x: Int(hi * Double(Width)) + X, y : 1*Height/3 + Y)])
+            points.append([CGPoint(x: Int(lo * Double(Width)) + X, y : 2*Height/3 + Y),
+                           CGPoint(x: Int(hi * Double(Width)) + X, y : 2*Height/3 + Y)])
+        
+            for i in 0...3
+            {
+                let line = SKShapeNode(points: UnsafeMutablePointer<CGPoint>(mutating: points[i]), count: points[i].count)
+                line.lineWidth = 5
+                line.fillColor = .gray
+                line.strokeColor = .gray
+                line.glowWidth = 0.5
+                line.isUserInteractionEnabled = false
+                
+                scene.addChild(line)
+            }
         }
-        
-//        scene.addChild(line)
-        
+    
+        var points = [[CGPoint]]()
+        let lo = 0.010
+        let hi = 1 - lo
+        points.append([CGPoint(x: Width, y : Int(lo * Double(Height*3))),
+                       CGPoint(x: Width, y : Int(hi * Double(Height*3)))])
+        points.append([CGPoint(x: 2*Width, y : Int(lo * Double(Height*3))),
+                       CGPoint(x: 2*Width, y : Int(hi * Double(Height*3)))])
+        points.append([CGPoint(x: Int(lo * Double(Width*3)), y : Height),
+                       CGPoint(x: Int(hi * Double(Width*3)), y : Height)])
+        points.append([CGPoint(x: Int(lo * Double(Width*3)), y : 2*Height),
+                       CGPoint(x: Int(hi * Double(Width*3)), y : 2*Height)])
+
+        for i in 0...3
+        {
+            let line = SKShapeNode(points: UnsafeMutablePointer<CGPoint>(mutating: points[i]), count: points[i].count)
+            line.lineWidth = 8
+            line.fillColor = .black
+            line.strokeColor = .black
+            line.glowWidth = 0.5
+            line.isUserInteractionEnabled = false
+
+            scene.addChild(line)
+        }
+    
+        cameraNode.position = CGPoint(x: scene.size.width/2, y: scene.size.height/2)
+        scene.addChild(cameraNode)
+        scene.camera = cameraNode
+//        let zoom = SKAction.scale(to: 3.00, duration: 1)
+//        cameraNode.run(zoom)
         
         spriteView.presentScene(scene)
-//        self.view.addSubview(spriteView)
         
         let fadeOut = SKAction.fadeOut(withDuration: 1.2)
         let fadeIn = SKAction.fadeIn(withDuration: 1.2)
         let wait = SKAction.wait(forDuration: 0.3)
         seq = SKAction.sequence([fadeOut,wait,fadeIn])
         pulseForever = SKAction.repeatForever(seq)
+        
         let xTexture = SKTexture(imageNamed: xImage)
         let oTexture = SKTexture(imageNamed: oImage)
         toX = SKAction.setTexture(xTexture, resize: false)
         toO = SKAction.setTexture(oTexture, resize: false)
         
-        
-        
-//        for i in 0...8
-//        {
-//            sprites[i].run(wait) {
-//                if i%2 == 0
-//                {
-//                    self.sprites[i].run(self.toX)
-//                }
-//                else
-//                {
-//                    self.sprites[i].run(self.toO)
-//                }
-//            }
-//        }
-//        addButtons(image: image)
 //        print("init over")
     }
     
-    /*
-    @objc func doSomething(sender: UIButton)
-    {
-        let move = game.newMove(index: sender.tag, player: parity%2 + 1)
-        if(move.validMove)
-        {
-            if(parity%2 == 0)
-            {
-                sender.setTitle(" \(sender.tag+1)", for: .normal)
-            }
-            else
-            {
-                sender.setTitle("∆ \(sender.tag+1)", for: .normal)
-            }
-            
-            if(move.winner != -1)
-            {
-                for i in 0...8
-                {
-                    if(game.array[i] == move.winner)
-                    {
-                        sprites[i].run(pulseForever)
-                    }
-                }
-            }
-            
-            parity += 1
-        }
-        //        print(sender.tag, terminator: "\n")
-    }*/
-    
-    @objc func doSomething2(sender: YourSpriteNode)
+    @objc func moveAttempted(sender: YourSpriteNode)
     {
         let playerID = parity%2 + 1
         let move = game.newMove(index: sender.id, player: playerID)
@@ -345,56 +346,11 @@ class YourViewController: UIViewController
             {
                 for i in move.boxes!
                 {
-                    /*if(game.array[i] == move.winner)
-                    {
-                        sprites[i].run(pulseForever)
-                    }*/
                     sprites[i].run(pulseForever)
                 }
             }
             
             parity += 1
-        }
-        //        print(sender.tag, terminator: "\n")
-    }
-    
-    func addButtons(image: String)
-    {
-        //        self.view = SKView(frame: CGRect(x: (Int(0.2*Double(Width))) , y: (Int(0.2*Double(Height))), width: Width, height: Height))
-        //        let borderAlpha : CGFloat = 0.7
-        //        let cornerRadius : CGFloat = 5.0
-        
-        for i in 0...8
-        {
-            let eagle = SKSpriteNode(imageNamed: image)
-            eagle.scale(to: CGSize(width: Width/3, height: Height/3))
-            eagle.position = CGPoint(x: (i%3)*100, y: Int(Double(i)/3.0)*100)
-            eagle.target(forAction: #selector(YourViewController.doSomething2(sender:)), withSender: self)
-            self.scene.addChild(eagle)
-            
-            //            let label = SKLabelNode(fontNamed: "Chalkduster")
-            //            label.text = "You Win!"
-            //            label.fontSize = 65
-            //            label.fontColor = SKColor.white
-            //            label.position = CGPoint(x: self.scene.frame.midX, y: self.scene.frame.midY)
-            //
-            //            button = UIButton(type: .roundedRect)
-            //            button.frame = CGRect(x: (i%3)*100, y: Int(Double(i)/3.0)*100, width: 100, height: 100)
-            //            button.setTitle("∏ \(i+1)", for: .normal)
-            //            button.setTitleColor(UIColor.black, for: .normal)
-            //            button.tintColor = UIColor.blue
-            //            button.backgroundColor = UIColor.clear
-            //            button.layer.borderWidth = 1.0
-            //            button.layer.borderColor = UIColor(white: 1.0, alpha: borderAlpha).cgColor
-            //            button.layer.cornerRadius = cornerRadius
-            //            button.showsTouchWhenHighlighted = true
-            //            button.tag = i
-            //            button.addTarget(self, action: #selector(YourViewController.doSomething(sender:)), for: .touchUpInside)
-            //
-            //            spriteView.addSubview(button)
-            //            buttons.append(button)
-            
-            //            print("∆\(i)")
         }
     }
     
@@ -410,5 +366,4 @@ class YourViewController: UIViewController
 }
 
 let viewController = YourViewController(image: "tic-tac-toe-blank.png", xImage: "tic-tac-toe-x.png", oImage: "tic-tac-toe-o.png")
-//viewController.preferredContentSize = CGSize(width: (Int(7/5*Width)), height: (Int(7/5*Height)))
 PlaygroundSupport.PlaygroundPage.current.liveView = viewController
