@@ -92,6 +92,7 @@ class tictactoe
 {
     var array: [Int]
     var gameOver: Bool
+    var winner: Int
     
     func newMove(index: Int, player: Int) -> (validMove: Bool, winner: Int?, boxes: [Int]?)
     {
@@ -113,25 +114,29 @@ class tictactoe
             if(array[i] == array[i+3] && array[i] == array[i+6] && array[i] != 0)
             {
                 gameOver = true
-                return (true, player, [i, i+3, i+6])
+                winner = player
+                return (true, winner, [i, i+3, i+6])
             }
             
             if(array[i*3] == array[i*3+1] && array[i*3] == array[i*3+2]  && array[i*3] != 0)
             {
                 gameOver = true
-                return (true, player, [i*3, i*3+1, i*3+2])
+                winner = player
+                return (true, winner, [i*3, i*3+1, i*3+2])
             }
             
             if(array[2] == array[4] && array[2] == array[6] && array[2] != 0)
             {
                 gameOver = true
-                return (true, player, [2, 4, 6])
+                winner = player
+                return (true, winner, [2, 4, 6])
             }
             
             if(array[0] == array[4] && array[0] == array[8] && array[0] != 0)
             {
                 gameOver = true
-                return (true, player, [0, 4, 8])
+                winner = player
+                return (true, winner, [0, 4, 8])
             }
         }
         
@@ -144,13 +149,14 @@ class tictactoe
         }
         
         gameOver = true
-        return (true, 0, nil)
+        return (true, winner, nil)
     }
     
     required init()
     {
-        gameOver = false
         array = [Int]()
+        winner = 0
+        gameOver = false
         for _ in 0...8
         {
             array.append(0)
@@ -179,8 +185,11 @@ class YourSpriteNode: SKSpriteNode
                 if(yourViewController.zoomedIn)
                 {
 //                    print("Touched \(sprite.id)")
-                    yourViewController.moveAttempted(sender: self)
-                    sprite.isUserInteractionEnabled = false
+                    if(yourViewController.nextMoveBox == sprite.box || yourViewController.nextMoveBox == -1)
+                    {
+                        yourViewController.moveAttempted(sender: self)
+                        sprite.isUserInteractionEnabled = false
+                    }
                     let zoomOutAction = zoomOut(from: P, to: O, duration: 0.7, intervals: 7)
                     yourViewController.cameraNode.run(zoomOutAction)
                     yourViewController.zoomedIn = false
@@ -206,6 +215,7 @@ class YourViewController: UIViewController
     var parity = 0
     var spriteView = SKView(frame: CGRect(x: 0 , y: 0, width: Width, height: Height))
     var zoomedIn = false
+    var nextMoveBox = -1
     let scene = SKScene(size: CGSize(width: Width*3, height: Height*3))
     
     var seq = SKAction()
@@ -214,9 +224,9 @@ class YourViewController: UIViewController
     var toO = SKAction()
     var cameraNode = SKCameraNode()
     
-    var game = tictactoe()
-    var sprites = [SKSpriteNode]()
-    var labels = [SKLabelNode]()
+    var games = [tictactoe]()
+    var sprites = [[SKSpriteNode]]()
+    var boxes = [[SKShapeNode]]()
     @IBOutlet weak var button: UIButton!
     var buttons: [UIButton] = [UIButton]()
     
@@ -240,6 +250,11 @@ class YourViewController: UIViewController
         {
             let X = (j%3)*Width
             let Y = Int(j/3)*Height
+            
+            games.append(tictactoe())
+            
+            var boxSprites = [YourSpriteNode]()
+            
             for i in 0...8
             {
                 let sprite = YourSpriteNode(imageNamed: image)
@@ -252,9 +267,11 @@ class YourViewController: UIViewController
                 sprite.box = j
                 sprite.setYourViewController(yourViewController: self)
                 sprite.target(forAction: #selector(YourViewController.moveAttempted(sender:)), withSender: self)
-                sprites.append(sprite)
+                boxSprites.append(sprite)
                 scene.addChild(sprite)
             }
+            
+            sprites.append(boxSprites)
         
             var points = [[CGPoint]]()
             let lo = 0.060
@@ -267,18 +284,23 @@ class YourViewController: UIViewController
                            CGPoint(x: Int(hi * Double(Width)) + X, y : 1*Height/3 + Y)])
             points.append([CGPoint(x: Int(lo * Double(Width)) + X, y : 2*Height/3 + Y),
                            CGPoint(x: Int(hi * Double(Width)) + X, y : 2*Height/3 + Y)])
-        
+            
+            var box = [SKShapeNode]()
+            
             for i in 0...3
             {
                 let line = SKShapeNode(points: UnsafeMutablePointer<CGPoint>(mutating: points[i]), count: points[i].count)
                 line.lineWidth = 5
-                line.fillColor = .gray
+//                line.fillColor = .gray
                 line.strokeColor = .gray
                 line.glowWidth = 0.5
                 line.isUserInteractionEnabled = false
                 
+                box.append(line)
                 scene.addChild(line)
             }
+            
+            boxes.append(box)
         }
     
         var points = [[CGPoint]]()
@@ -297,7 +319,7 @@ class YourViewController: UIViewController
         {
             let line = SKShapeNode(points: UnsafeMutablePointer<CGPoint>(mutating: points[i]), count: points[i].count)
             line.lineWidth = 8
-            line.fillColor = .black
+//            line.fillColor = .black
             line.strokeColor = .black
             line.glowWidth = 0.5
             line.isUserInteractionEnabled = false
@@ -327,10 +349,31 @@ class YourViewController: UIViewController
 //        print("init over")
     }
     
+    func highlightNextBox(nextBox: [SKShapeNode]?, currentBox: [SKShapeNode]?)
+    {
+        if let current = currentBox
+        {
+            for line in current
+            {
+                line.lineWidth = 5
+                line.strokeColor = .gray
+            }
+        }
+
+        if let next = nextBox
+        {
+            for line in next
+            {
+                line.lineWidth = 8
+                line.strokeColor = .black
+            }
+        }
+    }
+    
     @objc func moveAttempted(sender: YourSpriteNode)
     {
         let playerID = parity%2 + 1
-        let move = game.newMove(index: sender.id, player: playerID)
+        let move = games[sender.box].newMove(index: sender.id, player: playerID)
         if(move.validMove)
         {
             if(playerID == 1)
@@ -346,8 +389,27 @@ class YourViewController: UIViewController
             {
                 for i in move.boxes!
                 {
-                    sprites[i].run(pulseForever)
+                    sprites[sender.box][i].run(pulseForever)
                 }
+            }
+            
+            if(games[sender.box].gameOver)
+            {
+                for sprite in sprites[sender.box]
+                {
+                    sprite.isUserInteractionEnabled = false
+                }
+            }
+                
+            if(!games[sender.id].gameOver)
+            {
+                highlightNextBox(nextBox: boxes[sender.id], currentBox: boxes[sender.box])
+                nextMoveBox = sender.id
+            }
+            else
+            {
+                highlightNextBox(nextBox: nil, currentBox: boxes[sender.box])
+                nextMoveBox = -1
             }
             
             parity += 1
