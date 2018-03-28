@@ -228,11 +228,22 @@ public class YourViewController: UIViewController
                 {
                     if(globalGame.winner == playerID)
                     {
+                        for box in sprites
+                        {
+                            for sprite in box
+                            {
+                                sprite.removeAllActions()
+                            }
+                        }
                         for i in globalGame.boxes!
                         {
-                            for box in sprites
+                            for j in 0...8
                             {
-                                box[i].run(pulseForever1)
+                                if(games[i].tiles[j] == playerID)
+                                {
+                                    sprites[i][j].run(pulseForever1)
+                                    sprites[i][j].run(pulseForever2)
+                                }
                             }
                         }
                     }
@@ -250,6 +261,7 @@ public class YourViewController: UIViewController
                             line.isUserInteractionEnabled = false
                         }
                     }
+                    return
                 }
             }
             

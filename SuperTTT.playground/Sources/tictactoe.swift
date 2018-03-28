@@ -2,15 +2,15 @@ import Foundation
 
 class tictactoe
 {
-    var array: [Int]
+    var tiles: [Int]
     var gameOver: Bool
     var winner: Int
     
     func newMove(index: Int, player: Int) -> (validMove: Bool, winner: Int?, boxes: [Int]?)
     {
-        if(!gameOver && array[index] == 0)
+        if(!gameOver && tiles[index] == 0)
         {
-            array[index] = player
+            tiles[index] = player
             return checkGameOver(player: player)
         }
         else
@@ -23,14 +23,14 @@ class tictactoe
     {
         for i in 0...2
         {
-            if(array[i] == array[i+3] && array[i] == array[i+6] && array[i] == player) //columns
+            if(tiles[i] == tiles[i+3] && tiles[i] == tiles[i+6] && tiles[i] == player) //columns
             {
                 gameOver = true
                 winner = player
                 return (true, winner, [i, i+3, i+6])
             }
             
-            if(array[i*3] == array[i*3+1] && array[i*3] == array[i*3+2]  && array[i*3] == player) //rows
+            if(tiles[i*3] == tiles[i*3+1] && tiles[i*3] == tiles[i*3+2]  && tiles[i*3] == player) //rows
             {
                 gameOver = true
                 winner = player
@@ -38,14 +38,14 @@ class tictactoe
             }
         }
         
-        if(array[2] == array[4] && array[2] == array[6] && array[2] == player) //diagonal
+        if(tiles[2] == tiles[4] && tiles[2] == tiles[6] && tiles[2] == player) //diagonal
         {
             gameOver = true
             winner = player
             return (true, winner, [2, 4, 6])
         }
         
-        if(array[0] == array[4] && array[0] == array[8] && array[0] == player) //diagonal
+        if(tiles[0] == tiles[4] && tiles[0] == tiles[8] && tiles[0] == player) //diagonal
         {
             gameOver = true
             winner = player
@@ -54,7 +54,7 @@ class tictactoe
         
         for i in 0...8
         {
-            if(array[i] != 0) //atleast one tile is unoccupied
+            if(tiles[i] != 0) //atleast one tile is unoccupied
             {
                 return (true, -1, nil)
             }
@@ -66,12 +66,12 @@ class tictactoe
     
     required init()
     {
-        array = [Int]()
+        tiles = [Int]()
         winner = 0
         gameOver = false
         for _ in 0...8
         {
-            array.append(0)
+            tiles.append(0)
         }
     }
 }
