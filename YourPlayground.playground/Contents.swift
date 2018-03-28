@@ -167,7 +167,8 @@ class YourLineNode: SKShapeNode
 {
     var id = 0
     var box = 0
-    private var yourViewController = YourViewController()
+    static private var yourViewController = YourViewController()
+    static private var isYourViewControllerSet = false
     var zoomInAction = SKAction()
     var zoomOutAction = SKAction()
     
@@ -178,15 +179,15 @@ class YourLineNode: SKShapeNode
             let positionInScene = touch.location(in: self)
             if self.atPoint(positionInScene) is YourLineNode
             {
-                if(yourViewController.zoomedIn)
+                if(YourLineNode.yourViewController.zoomedIn)
                 {
-                    yourViewController.cameraNode.run(zoomOutAction)
-                    yourViewController.zoomedIn = false
+                    YourLineNode.yourViewController.cameraNode.run(zoomOutAction)
+                    YourLineNode.yourViewController.zoomedIn = false
                 }
                 else
                 {
-                    yourViewController.cameraNode.run(zoomInAction)
-                    yourViewController.zoomedIn = true
+                    YourLineNode.yourViewController.cameraNode.run(zoomInAction)
+                    YourLineNode.yourViewController.zoomedIn = true
                 }
             }
         }
@@ -194,7 +195,11 @@ class YourLineNode: SKShapeNode
     
     func setYourViewController(yourViewController: YourViewController)
     {
-        self.yourViewController = yourViewController
+        if(!YourLineNode.isYourViewControllerSet)
+        {
+            YourLineNode.yourViewController = yourViewController
+            YourLineNode.isYourViewControllerSet = true
+        }
     }
     
     func setZoomActions(zoomInAction: SKAction, zoomOutAction: SKAction)
@@ -209,7 +214,6 @@ class BoxContainer
     var box = [YourLineNode]()
     var zoomInAction = SKAction()
     var zoomOutAction = SKAction()
-    private var yourViewController = YourViewController()
     
     init(X: Int, Y: Int)
     {
@@ -263,7 +267,8 @@ class YourSpriteNode: SKSpriteNode
 {
     var id = 0
     var box = 0
-    private var yourViewController = YourViewController()
+    static private var yourViewController = YourViewController()
+    static private var isYourViewControllerSet = false
     var zoomInAction = SKAction()
     var zoomOutAction = SKAction()
     
@@ -274,20 +279,22 @@ class YourSpriteNode: SKSpriteNode
             let positionInScene = touch.location(in: self)
             if let sprite = self.atPoint(positionInScene) as? YourSpriteNode
             {
-                if(yourViewController.zoomedIn)
+                if(YourSpriteNode.yourViewController.zoomedIn)
                 {
 //                    print("Touched \(sprite.id)")
-                    if(yourViewController.nextMoveBox == sprite.box || yourViewController.nextMoveBox == -1)
+                    if(YourSpriteNode.yourViewController.nextMoveBox == sprite.box || YourSpriteNode.yourViewController.nextMoveBox == -1)
                     {
-                        yourViewController.moveAttempted(sender: self)
+//                        DispatchQueue(label: "queue", qos: .userInitiated).sync{
+                            YourSpriteNode.yourViewController.moveAttempted(sprite: sprite)
+//                        }
                     }
-                    yourViewController.cameraNode.run(zoomOutAction)
-                    yourViewController.zoomedIn = false
+                    YourSpriteNode.yourViewController.cameraNode.run(zoomOutAction)
+                    YourSpriteNode.yourViewController.zoomedIn = false
                 }
                 else
                 {
-                    yourViewController.cameraNode.run(zoomInAction)
-                    yourViewController.zoomedIn = true
+                    YourSpriteNode.yourViewController.cameraNode.run(zoomInAction)
+                    YourSpriteNode.yourViewController.zoomedIn = true
                 }
             }
         }
@@ -295,13 +302,18 @@ class YourSpriteNode: SKSpriteNode
     
     func setYourViewController(yourViewController: YourViewController)
     {
-        self.yourViewController = yourViewController
+        if(!YourSpriteNode.isYourViewControllerSet)
+        {
+            YourSpriteNode.yourViewController = yourViewController
+            YourSpriteNode.isYourViewControllerSet = true
+        }
     }
     
     func setZoomActions(zoomInAction: SKAction, zoomOutAction: SKAction)
     {
-        self.zoomInAction = zoomInAction
-        self.zoomOutAction = zoomOutAction
+        let wait = SKAction.wait(forDuration: 0.28)
+        self.zoomInAction = SKAction.sequence([wait, zoomInAction])
+        self.zoomOutAction = SKAction.sequence([wait, zoomOutAction])
     }
 }
 
@@ -487,37 +499,38 @@ class YourViewController: UIViewController
         return (true, 0, nil) //draw
     }
     
-    @objc func moveAttempted(sender: YourSpriteNode)
+    func moveAttempted(sprite: YourSpriteNode)
     {
         let playerID = parity%2 + 1
-        let move = games[sender.box].newMove(index: sender.id, player: playerID)
-        DispatchQueue.global().sync {
+        let move = games[sprite.box].newMove(index: sprite.id, player: playerID)
+         
+//        {
             if(move.validMove)
             {
                 if(playerID == 1) //change tile to X or O
                 {
-                    sender.run(toX)
+                    sprite.run(toX)
                 }
                 else
                 {
-                    sender.run(toO)
+                    sprite.run(toO)
                 }
                 
                 
-                if(games[sender.box].gameOver) //box will no longer be interacted with
+                if(games[sprite.box].gameOver) //box will no longer be interacted with
                 {
                     if(move.winner == playerID) //if move resulted in victory
                     {
                         for i in move.boxes!
                         {
-                            sprites[sender.box][i].run(pulseForever2)
+                            sprites[sprite.box][i].run(pulseForever2)
                         }
                     }
-                    for sprite in sprites[sender.box]
+                    for sprite in sprites[sprite.box]
                     {
                         sprite.isUserInteractionEnabled = false
                     }
-                    for line in boxes[sender.box]
+                    for line in boxes[sprite.box]
                     {
                         line.isUserInteractionEnabled = false
                     }
@@ -552,20 +565,20 @@ class YourViewController: UIViewController
                     }
                 }
                 
-                if(games[sender.id].gameOver) //if next box is game over
+                if(games[sprite.id].gameOver) //if next box is game over
                 {
-                    highlightNextBox(nextBox: nil, currentBox: boxes[sender.box])
+                    highlightNextBox(nextBox: nil, currentBox: boxes[sprite.box])
                     nextMoveBox = -1
                 }
                 else //if next box is playable
                 {
-                    highlightNextBox(nextBox: boxes[sender.id], currentBox: boxes[sender.box])
-                    nextMoveBox = sender.id
+                    highlightNextBox(nextBox: boxes[sprite.id], currentBox: boxes[sprite.box])
+                    nextMoveBox = sprite.id
                 }
                 
                 parity += 1
             }
-        }
+//        }
     }
     
     init()
